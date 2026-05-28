@@ -1,0 +1,14 @@
+# ==========================================
+# INSTRUCTIONS:
+# 1. List the exact file extensions you want the pipeline to process and ingest into your database.
+# 2. Ensure you include the dot (.).
+# 3. Rename this file to 'target_extensions.txt' and delete this header.
+# ==========================================
+
+.pdf
+.docx
+.doc
+.txt
+.md
+.csv
+.json
