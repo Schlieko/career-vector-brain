@@ -148,7 +148,7 @@ if prompt := st.chat_input("Query your professional database..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching David's Career Brain..."):
+        with st.spinner("Searching Career Brain..."):
             
             retrieved_blocks = query_career_brain(prompt, include_chats, include_emails, metadata_filter)
             context_string = "\n\n---\n\n".join(retrieved_blocks)
