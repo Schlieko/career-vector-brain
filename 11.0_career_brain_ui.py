@@ -35,7 +35,7 @@ def extract_uploaded_text(uploaded_file):
         st.error(f"Error reading file {uploaded_file.name}: {e}")
     return text[:15000] 
 
-def query_career_brain(user_query, include_ai_chats, include_emails, keyword_filter, top_k=15):
+def query_career_brain(user_query, include_ai_chats, include_emails, file_filter, email_filter, top_k=15):
     response = client.models.embed_content(
         model=EMBEDDING_MODEL,
         contents=user_query
@@ -60,8 +60,13 @@ def query_career_brain(user_query, include_ai_chats, include_emails, keyword_fil
         if not include_emails and is_email:
             continue
             
-        if keyword_filter and keyword_filter.lower() not in header.lower():
-            continue
+        # THE NEW DUAL METADATA GUILLOTINE
+        if is_email:
+            if email_filter and email_filter.lower() not in header.lower():
+                continue
+        else:
+            if file_filter and file_filter.lower() not in header.lower():
+                continue
             
         final_results.append(text)
         if len(final_results) >= top_k:
@@ -106,13 +111,16 @@ with col2:
 with st.sidebar:
     st.header("⚙️ Engine Controls")
     
-    # --- NEW: BRAIN ONLY TOGGLE ---
     brain_only = st.toggle("Brain Only (Strict RAG)", value=False)
     
     include_chats = st.toggle("Include AI Chats", value=False)
     include_emails = st.toggle("Include Sent Emails", value=True)
     
-    metadata_filter = st.text_input("🔍 Metadata Filter", placeholder="e.g. placemat, 2024, ACME")
+    st.divider()
+    
+    # --- NEW: DUAL FILTERS ---
+    file_metadata_filter = st.text_input("📁 File Metadata Filter", placeholder="e.g. placemat, 2024, ACME")
+    email_metadata_filter = st.text_input("📧 Email Metadata Filter", placeholder="e.g. observability, john.doe@")
     
     st.divider()
     
@@ -148,9 +156,16 @@ if prompt := st.chat_input("Query your professional database..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Searching Career Brain..."):
+        with st.spinner("Searching the Career Brain..."):
             
-            retrieved_blocks = query_career_brain(prompt, include_chats, include_emails, metadata_filter)
+            # Pass both filters to the engine
+            retrieved_blocks = query_career_brain(
+                prompt, 
+                include_chats, 
+                include_emails, 
+                file_metadata_filter, 
+                email_metadata_filter
+            )
             context_string = "\n\n---\n\n".join(retrieved_blocks)
             
             uploaded_text_context = ""
@@ -181,7 +196,6 @@ if prompt := st.chat_input("Query your professional database..."):
             - When mixing personal data with external knowledge, make it clear which is which.
             """
 
-            # Note the "f" before the triple quotes to inject the retrieval_rules
             system_prompt = f"""You are an elite Career Archivist and Advisory Copilot. You have access to the user's comprehensive professional database.
             
             INSTRUCTIONS & FORMATTING:
@@ -210,7 +224,7 @@ if prompt := st.chat_input("Query your professional database..."):
                 
                 with st.expander("🔍 View Retrieved Database Blocks"):
                     if not retrieved_blocks:
-                        st.write("No blocks matched your metadata filter.")
+                        st.write("No blocks matched your metadata filter(s).")
                     else:
                         st.write(context_string)
                     
