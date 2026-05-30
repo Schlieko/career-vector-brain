@@ -60,13 +60,18 @@ def query_career_brain(user_query, include_ai_chats, include_emails, file_filter
         if not include_emails and is_email:
             continue
             
-        # THE NEW DUAL METADATA GUILLOTINE
+        # --- THE NEW COMMA-FRIENDLY GUILLOTINE ---
         if is_email:
-            if email_filter and email_filter.lower() not in header.lower():
-                continue
+            if email_filter:
+                # Split by comma, strip spaces, and check if ANY keyword matches (OR logic)
+                keywords = [k.strip().lower() for k in email_filter.split(',')]
+                if not any(k in header.lower() for k in keywords if k):
+                    continue
         else:
-            if file_filter and file_filter.lower() not in header.lower():
-                continue
+            if file_filter:
+                keywords = [k.strip().lower() for k in file_filter.split(',')]
+                if not any(k in header.lower() for k in keywords if k):
+                    continue
             
         final_results.append(text)
         if len(final_results) >= top_k:
@@ -118,7 +123,6 @@ with st.sidebar:
     
     st.divider()
     
-    # --- NEW: DUAL FILTERS ---
     file_metadata_filter = st.text_input("📁 File Metadata Filter", placeholder="e.g. placemat, 2024, ACME")
     email_metadata_filter = st.text_input("📧 Email Metadata Filter", placeholder="e.g. observability, john.doe@")
     
@@ -158,7 +162,6 @@ if prompt := st.chat_input("Query your professional database..."):
     with st.chat_message("assistant"):
         with st.spinner("Searching the Career Brain..."):
             
-            # Pass both filters to the engine
             retrieved_blocks = query_career_brain(
                 prompt, 
                 include_chats, 
@@ -182,7 +185,6 @@ if prompt := st.chat_input("Query your professional database..."):
                         doc_text = extract_uploaded_text(file)
                         uploaded_text_context += f"\n\n[USER UPLOADED DOCUMENT: {file.name}]:\n{doc_text}\n\n"
 
-            # --- DYNAMIC PROMPT LOGIC ---
             if brain_only:
                 retrieval_rules = """2. Strict Knowledge Retrieval:
             - You are operating in "Brain Only" mode. You MUST answer ONLY using the provided 'Retrieved Career Blocks'.
